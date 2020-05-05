@@ -52,37 +52,100 @@ class TriviaTestCase(unittest.TestCase):
         self.assertEqual(res.status_code, 404)
         self.assertEqual(data['message'], 'Not Found')
 
-        self.assertEqual(res.status_code, 200)
-        self.assertTrue(data['categories'])
-
-    def test_get_questions(self):
-        res = self.client().get('/questions?page=1')
+    def test_delete_questions(self):
+        res = self.client().delete('/questions/2')
         data = json.loads(res.data)
 
         self.assertEqual(res.status_code, 200)
-        self.assertTrue(data['total_questions'])
-        self.assertTrue(len(data['questions']))
+        self.assertTrue(data['message'])
+        self.assertEqual(data['message'], 'Delete Successful')
 
-    def test_404_beyond_valid_page(self):
-        res = self.client().get('/questions?page=100')
+    def test_404_no_question_to_delete(self):
+        res = self.client().delete('/questions/4000')
         data = json.loads(res.data)
 
         self.assertEqual(res.status_code, 404)
         self.assertEqual(data['message'], 'Not Found')
 
-        self.assertEqual(res.status_code, 200)
-        self.assertTrue(data['categories'])
+    def test_create_questions(self):
+        json_data = {
+            'question': 'test_question',
+            'answer': 'test_answer',
+            'difficulty': 1,
+            'category': 1
+        }
+        res = self.client().post('/questions', json=json_data)
+        data = json.loads(res.data)
 
-    def test_get_questions(self):
-        res = self.client().get('/questions?page=1')
+        self.assertTrue(data['message'])
+        self.assertEqual(data['message'], 'success')
+
+    def test_422_create_question(self):
+        json_data = {
+            'question': '',
+            'answer': 'test_answer',
+            'difficulty': 1,
+            'category': 1
+        }
+        res = self.client().post('/questions', json=json_data)
+        data = json.loads(res.data)
+
+        self.assertEqual(res.status_code, 422)
+        self.assertEqual(data['message'], 'Unprocessable')
+
+    def test_quizzes(self):
+        json_data = {
+            'previous_questions': [],
+            'quiz_category': {"type": "Geography", "id": "3"},
+        }
+        res = self.client().post('/quizzes', json=json_data)
         data = json.loads(res.data)
 
         self.assertEqual(res.status_code, 200)
-        self.assertTrue(data['total_questions'])
-        self.assertTrue(len(data['questions']))
+        self.assertTrue(data['question'])
 
-    def test_404_beyond_valid_page(self):
-        res = self.client().get('/questions?page=100')
+    def test_422_quizzes(self):
+        json_data = {
+            'previous_questions': [],
+            'quiz_category': {},
+        }
+        res = self.client().post('/quizzes', json=json_data)
+
+        data = json.loads(res.data)
+        self.assertEqual(res.status_code, 422)
+        self.assertEqual(data['message'], 'Unprocessable')
+
+    def test_get_questions_per_category(self):
+        res = self.client().get('/categories/1/questions')
+        data = json.loads(res.data)
+
+        self.assertEqual(res.status_code, 200)
+        self.assertTrue(len(data['questions']))
+        self.assertTrue(data['total_questions'])
+
+    def test_404_beyond_valid_category(self):
+        res = self.client().get('/categories/1000/questions')
+        data = json.loads(res.data)
+
+        self.assertEqual(res.status_code, 404)
+        self.assertEqual(data['message'], 'Not Found')
+
+    def test_get_questions_per_search(self):
+        json_data = {
+            'searchTerm': 'what'
+        }
+        res = self.client().post('/questions/search', json=json_data)
+        data = json.loads(res.data)
+
+        self.assertEqual(res.status_code, 200)
+        self.assertTrue(len(data['questions']))
+        self.assertTrue(data['total_questions'])
+
+    def test_404_beyond_valid_search(self):
+        json_data = {
+            'searchTerm': 'muuuuuuuuuuuuu'
+        }
+        res = self.client().post('/questions/search', json=json_data)
         data = json.loads(res.data)
 
         self.assertEqual(res.status_code, 404)

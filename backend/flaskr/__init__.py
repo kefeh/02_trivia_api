@@ -47,6 +47,8 @@ def create_app(test_config=None):
                 Question.category == category_id).paginate(
                 max_per_page=num_quest, page=page)
             category = Category.query.get(category_id)
+            if not category:
+                abort(404)
             category_type = category.type
         elif search_term:
             # Here we are handling the search for a question not
@@ -91,7 +93,7 @@ def create_app(test_config=None):
     def delete_question(question_id):
         question = Question.query.get(question_id)
         if not question:
-            abort(405)
+            abort(404)
         try:
             question.delete()
         except Exception:
@@ -118,11 +120,10 @@ def create_app(test_config=None):
 
     @app.route('/questions/search', methods=['POST'])
     def search_question():
-        try:
-            search_term = request.json.get('searchTerm', '')
-            result = question_get_return(1, search_term=search_term)
-        except Exception:
-            abort(422)
+        search_term = request.json.get('searchTerm', '')
+        result = question_get_return(1, search_term=search_term)
+        if not result.get('questions'):
+            abort(404)
 
         return jsonify(result)
 
@@ -130,7 +131,7 @@ def create_app(test_config=None):
     def get_question_per_category(category_id):
         result = question_get_return(1, category_id=category_id)
         if not result:
-            abort(405)
+            abort(404)
 
         return jsonify(result)
 
@@ -139,6 +140,9 @@ def create_app(test_config=None):
         data = request.json
         previous_questions_list = data.get('previous_questions')
         quiz_category = data.get('quiz_category')
+
+        if not quiz_category:
+            abort(422)
 
         question = Question.query.filter(
             Question.category == quiz_category.get('id')).filter(
